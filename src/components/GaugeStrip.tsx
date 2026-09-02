@@ -45,7 +45,6 @@ export function GaugeStrip({ counts }: { counts: GaugeCounts }) {
         value={String(counts.expiringSoon)}
         tone={counts.expiringSoon > 0 ? "warn" : undefined}
       />
-      <Tile label="HTTPS coverage" help={GAUGE_HELP.httpsCoverage} value={`${counts.httpsCoveragePct}%`} />
       <Tile label="Spare profiles" help={GAUGE_HELP.spareProfiles} value={String(counts.spareProfiles)} />
     </div>
   );

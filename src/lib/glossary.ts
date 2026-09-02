@@ -1,9 +1,6 @@
 // Plain-English explanations shown in tooltips throughout the app. Keeping
 // them here means the wording only has to be right once.
 
-const HTTPS_EXPLAINER =
-  "HTTPS is the little padlock browsers show for a secure site. Links inside these emails (tracking pixels, unsubscribe links, images) point back to this domain — if HTTPS is off, some email clients and browsers flag it as unsafe, which hurts trust and can hurt delivery.";
-
 const DMARC_EXPLAINER =
   "DMARC is a setting that stops other people from faking emails that look like they came from this domain. 'Reject' is the strict, correct setting — anything else is worth double-checking.";
 
@@ -11,7 +8,6 @@ export const GAUGE_HELP = {
   campaignsInFlight: "Campaigns currently set to send (status: Pending). Paused and completed campaigns aren't counted.",
   flaggedDomains: "Domains someone has manually marked as blacklisted (SBL or DBL) after checking Spamhaus or similar. This isn't checked automatically — see Domains for details.",
   expiringSoon: "Domains whose registration expires within 60 days, whether or not that actually needs action. Check the 'Needs renewal' flag on the Domains tab for the ones that really do.",
-  httpsCoverage: `Percentage of domains with HTTPS turned on. ${HTTPS_EXPLAINER}`,
   spareProfiles: "Sending profiles (domain + IP pairs) that exist on the platform but aren't assigned to any campaign — available to use for a new campaign or a replacement.",
 } as const;
 

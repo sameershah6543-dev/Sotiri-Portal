@@ -112,6 +112,5 @@ export type GaugeCounts = {
   campaignsInFlight: number;
   flaggedDomains: number;
   expiringSoon: number;
-  httpsCoveragePct: number;
   spareProfiles: number;
 };

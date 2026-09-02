@@ -96,14 +96,11 @@ export function buildGaugeCounts(campaigns: ViewCampaign[], domains: ViewDomain[
   const inFlight = campaigns.filter((c) => c.status === "Pending").length;
   const flagged = domains.filter((d) => d.sbl || d.dbl).length;
   const expiringSoon = domains.filter((d) => d.daysLeft <= 60 && d.daysLeft >= 0).length;
-  const httpsOn = domains.filter((d) => d.https).length;
-  const httpsCoveragePct = domains.length === 0 ? 0 : Math.round((httpsOn / domains.length) * 100);
 
   return {
     campaignsInFlight: inFlight,
     flaggedDomains: flagged,
     expiringSoon,
-    httpsCoveragePct,
     spareProfiles: spareProfiles,
   };
 }
