@@ -46,11 +46,6 @@ const columns: Column<ViewCampaign>[] = [
         <StatusChip label="No profile" tone="critical" title="This campaign has no sending profile assigned and can't send." />
       ),
   },
-  {
-    header: "HTTPS",
-    tooltip: CAMPAIGN_HELP.https,
-    cell: (c) => <StatusChip label={c.https ? "On" : "Off"} tone={c.https ? "good" : "neutral"} />,
-  },
   { header: "DMARC", mono: true, tooltip: CAMPAIGN_HELP.dmarc, cell: (c) => c.dmarc },
   {
     header: "Flags",

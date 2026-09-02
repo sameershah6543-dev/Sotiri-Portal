@@ -10,11 +10,6 @@ function buildColumns(isTeam: boolean): Column<ViewDomain>[] {
   const cols: Column<ViewDomain>[] = [
     { header: "Domain", mono: true, cell: (d) => d.domain },
     { header: "Status", tooltip: DOMAIN_HELP.status, cell: (d) => d.status },
-    {
-      header: "HTTPS",
-      tooltip: DOMAIN_HELP.https,
-      cell: (d) => <StatusChip label={d.https ? "On" : "Off"} tone={d.https ? "good" : "neutral"} />,
-    },
     { header: "DMARC", mono: true, tooltip: DOMAIN_HELP.dmarc, cell: (d) => d.dmarc },
     {
       header: "Expires",
