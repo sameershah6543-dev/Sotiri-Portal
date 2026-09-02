@@ -81,12 +81,24 @@ export type ViewCampaign = PlatformCampaign & {
   profileMismatch: boolean; // profileId !== rotatedProfileId when both present
 };
 
+export type ReplacedFrom = {
+  oldDomain: string;
+  reason: string;
+  date: string;
+};
+
 export type ViewDomain = PlatformDomain & {
   daysLeft: number;
   sbl: boolean;
   dbl: boolean;
   originalNote: string | null;
   isNewDomain: boolean;
+  replacedFrom: ReplacedFrom | null;
+  // True only when auto-renew is off, it's actually expiring soon (or already
+  // expired), AND a campaign is still using it — an unused domain with
+  // auto-renew off is fine to let lapse (brief §3's jacksonoilsolventsinc.com
+  // example), so it's deliberately not flagged here.
+  needsRenewal: boolean;
 };
 
 export type AttentionItem = {

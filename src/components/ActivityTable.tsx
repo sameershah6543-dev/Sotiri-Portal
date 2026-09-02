@@ -24,7 +24,11 @@ const TYPE_TONE: Record<Note["type"], "critical" | "good" | "neutral"> = {
 
 const columns: Column<Note>[] = [
   { header: "When", mono: true, cell: (n) => new Date(n.ts).toLocaleString() },
-  { header: "Type", cell: (n) => <StatusChip label={TYPE_LABEL[n.type]} tone={TYPE_TONE[n.type]} /> },
+  {
+    header: "Type",
+    tooltip: "Every flag, note, and replacement logged in the portal shows up here as a permanent audit trail.",
+    cell: (n) => <StatusChip label={TYPE_LABEL[n.type]} tone={TYPE_TONE[n.type]} />,
+  },
   { header: "Target", mono: true, cell: (n) => n.target },
   { header: "Note", cell: (n) => n.text },
   { header: "Author", cell: (n) => n.author },

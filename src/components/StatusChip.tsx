@@ -7,9 +7,10 @@ const TONE_CLASSES: Record<Tone, string> = {
   neutral: "bg-surface-2 text-muted border-line",
 };
 
-export function StatusChip({ label, tone }: { label: string; tone: Tone }) {
+export function StatusChip({ label, tone, title }: { label: string; tone: Tone; title?: string }) {
   return (
     <span
+      title={title}
       className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${TONE_CLASSES[tone]}`}
     >
       <span

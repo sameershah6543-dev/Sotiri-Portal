@@ -14,6 +14,10 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
+    // Deliberate: theme depends on the DOM/localStorage, which don't exist
+    // during server rendering, so it can't be computed during render without
+    // a hydration mismatch — this has to run once after mount instead.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(currentTheme());
   }, []);
 

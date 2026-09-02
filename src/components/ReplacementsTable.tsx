@@ -6,10 +6,14 @@ import type { Replacement } from "@/types";
 const columns: Column<Replacement>[] = [
   { header: "Date", mono: true, cell: (r) => r.date },
   { header: "Client", cell: (r) => r.client },
-  { header: "Campaign", cell: (r) => `${r.campaignTitle} (${r.campaignId})` },
+  {
+    header: "Campaign",
+    tooltip: "The campaign whose sending domain was swapped.",
+    cell: (r) => `${r.campaignTitle} (${r.campaignId})`,
+  },
   { header: "Old domain", mono: true, cell: (r) => r.oldDomain },
   { header: "New domain", mono: true, cell: (r) => r.newDomain },
-  { header: "Reason", cell: (r) => r.reason },
+  { header: "Reason", tooltip: "Why the swap happened, e.g. blacklisted or never existed in the account.", cell: (r) => r.reason },
 ];
 
 export function ReplacementsTable({ rows }: { rows: Replacement[] }) {

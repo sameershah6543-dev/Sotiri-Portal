@@ -5,6 +5,11 @@ import type { AccountInfo, PlatformCampaign, PlatformDomain, UnusedProfile } fro
 
 export const maxDuration = 60;
 
+// The real platform payload shape is unknown until MCC_API_KEY is live (build
+// plan step 6) — this stands in for whatever getcampaigns/getdomains/etc.
+// actually return, with field access cast per brief §3/§4 below.
+type RawRecord = Record<string, unknown>;
+
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
@@ -60,28 +65,30 @@ async function handleRefresh(req: NextRequest) {
     // Field names below follow brief §3/§4. Confirm against the real payload
     // shape once MCC_API_KEY is live (build plan step 6) and adjust here only.
     const [rawCampaigns, rawDomains, rawProfiles, rawAccount] = await Promise.all([
-      mccGet<any[]>("email", "getcampaigns"),
-      mccGet<any[]>("email", "getdomains"),
-      mccGet<any[]>("email", "getsendingprofiles"),
-      mccGet<any>("email", "getaccountinfo"),
+      mccGet<RawRecord[]>("email", "getcampaigns"),
+      mccGet<RawRecord[]>("email", "getdomains"),
+      mccGet<RawRecord[]>("email", "getsendingprofiles"),
+      mccGet<RawRecord>("email", "getaccountinfo"),
     ]);
 
     const campaigns: PlatformCampaign[] = await mapWithConcurrency(rawCampaigns, 8, async (c) => {
       let rotatedProfileId: string | null | undefined;
       try {
-        const detail = await mccGet<any>("email", "getcampaigndetail", { id: String(c.id) });
-        rotatedProfileId = detail?.rotatedprofiles?.profile?.profileid ?? null;
+        const detail = await mccGet<RawRecord>("email", "getcampaigndetail", { id: String(c.id) });
+        const rotatedprofiles = detail.rotatedprofiles as RawRecord | undefined;
+        const profile = rotatedprofiles?.profile as RawRecord | undefined;
+        rotatedProfileId = (profile?.profileid as string | undefined) ?? null;
       } catch (err) {
         console.warn(`[refresh] getcampaigndetail failed for campaign ${c.id}`, err);
       }
       return {
         id: String(c.id),
-        title: c.title,
-        status: c.status,
-        profileId: c.profileid ?? null,
-        domain: c.domain,
+        title: c.title as string,
+        status: c.status as PlatformCampaign["status"],
+        profileId: (c.profileid as string | null) ?? null,
+        domain: c.domain as string,
         https: Boolean(c.https),
-        dmarc: c.dmarc,
+        dmarc: c.dmarc as string,
         rotatedProfileId,
       };
     });
@@ -95,27 +102,30 @@ async function handleRefresh(req: NextRequest) {
 
     const assignedProfileIds = new Set(campaigns.map((c) => c.profileId).filter(Boolean));
 
-    const domains: PlatformDomain[] = rawDomains.map((d) => ({
-      domain: d.domain,
-      domainId: String(d.id),
-      status: d.status,
-      https: Boolean(d.https),
-      dmarc: d.dmarc,
-      expireDate: d.expiredateiso,
-      renew: d.autorenew ? "Yes" : "No",
-      hasProfile: Boolean(d.profileid),
-      profileId: d.profileid ?? null,
-      ip: d.ip ?? null,
-      usedByCampaigns: usedByCampaigns.get(d.domain) ?? [],
-    }));
+    const domains: PlatformDomain[] = rawDomains.map((d) => {
+      const domain = d.domain as string;
+      return {
+        domain,
+        domainId: String(d.id),
+        status: d.status as string,
+        https: Boolean(d.https),
+        dmarc: d.dmarc as string,
+        expireDate: d.expiredateiso as string,
+        renew: d.autorenew ? "Yes" : "No",
+        hasProfile: Boolean(d.profileid),
+        profileId: (d.profileid as string | null) ?? null,
+        ip: (d.ip as string | null) ?? null,
+        usedByCampaigns: usedByCampaigns.get(domain) ?? [],
+      };
+    });
 
     const unusedProfiles: UnusedProfile[] = rawProfiles
-      .filter((p: any) => !assignedProfileIds.has(String(p.id)))
-      .map((p: any) => ({ profileId: String(p.id), domain: p.domain, ip: p.ip }));
+      .filter((p) => !assignedProfileIds.has(String(p.id)))
+      .map((p) => ({ profileId: String(p.id), domain: p.domain as string, ip: p.ip as string }));
 
     const accountInfo: AccountInfo = {
-      billingPeriodStart: rawAccount.billingperiodstart,
-      billingPeriodEnd: rawAccount.billingperiodend,
+      billingPeriodStart: rawAccount.billingperiodstart as string,
+      billingPeriodEnd: rawAccount.billingperiodend as string,
       packageSize: Number(rawAccount.packagesize),
       sentThisCycle: Number(rawAccount.sentthiscycle),
       totalIps: Number(rawAccount.totalips),

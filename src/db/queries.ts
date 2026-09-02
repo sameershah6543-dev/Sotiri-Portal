@@ -14,7 +14,7 @@ import type {
   ViewCampaign,
   ViewDomain,
 } from "@/types";
-import { clientFromTitle, daysLeft, hasProfileMismatch } from "@/lib/derive";
+import { clientFromTitle, computeNeedsRenewal, daysLeft, hasProfileMismatch } from "@/lib/derive";
 
 export type MergedState = {
   lastRefreshed: string | null;
@@ -42,11 +42,12 @@ export async function getMergedState(): Promise<MergedState> {
     ]),
   );
   const newDomains = new Set(replacementRows.map((r) => r.newDomain));
+  const replacementByNewDomain = new Map(
+    replacementRows.map((r) => [r.newDomain, { oldDomain: r.oldDomain, reason: r.reason, date: r.date }]),
+  );
 
   const platformCampaigns = (snapshot?.campaigns as PlatformCampaign[] | undefined) ?? [];
   const platformDomains = (snapshot?.domains as PlatformDomain[] | undefined) ?? [];
-
-  const domainsByName = new Map(platformDomains.map((d) => [d.domain, d]));
 
   const viewCampaigns: ViewCampaign[] = platformCampaigns.map((c) => {
     const flag = flagsByDomain.get(c.domain);
@@ -61,13 +62,16 @@ export async function getMergedState(): Promise<MergedState> {
 
   const viewDomains: ViewDomain[] = platformDomains.map((d) => {
     const flag = flagsByDomain.get(d.domain);
+    const dLeft = daysLeft(d.expireDate);
     return {
       ...d,
-      daysLeft: daysLeft(d.expireDate),
+      daysLeft: dLeft,
       sbl: flag?.sbl ?? false,
       dbl: flag?.dbl ?? false,
       originalNote: flag?.originalNote ?? null,
       isNewDomain: newDomains.has(d.domain),
+      replacedFrom: replacementByNewDomain.get(d.domain) ?? null,
+      needsRenewal: computeNeedsRenewal({ daysLeft: dLeft, renew: d.renew, usedByCampaigns: d.usedByCampaigns }),
     };
   });
 

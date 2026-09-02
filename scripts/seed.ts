@@ -17,10 +17,28 @@ const ACCOUNT_INFO = {
 };
 
 async function main() {
-  const campaigns = seed.campaigns.map(({ sbl: _sbl, isNewDomain: _isNewDomain, ...c }) => c);
-  const domains = seed.domains.map(
-    ({ sbl: _sbl, dbl: _dbl, originalNote: _originalNote, daysLeft: _daysLeft, ...d }) => d,
-  );
+  const campaigns = seed.campaigns.map((c) => ({
+    id: c.id,
+    title: c.title,
+    status: c.status,
+    profileId: c.profileId,
+    domain: c.domain,
+    https: c.https,
+    dmarc: c.dmarc,
+  }));
+  const domains = seed.domains.map((d) => ({
+    domain: d.domain,
+    domainId: d.domainId,
+    status: d.status,
+    https: d.https,
+    dmarc: d.dmarc,
+    expireDate: d.expireDate,
+    renew: d.renew,
+    hasProfile: d.hasProfile,
+    profileId: d.profileId,
+    ip: d.ip,
+    usedByCampaigns: d.usedByCampaigns,
+  }));
 
   await db
     .insert(platformSnapshot)

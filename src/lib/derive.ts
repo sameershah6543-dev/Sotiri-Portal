@@ -18,6 +18,16 @@ export function hasProfileMismatch(campaign: PlatformCampaign): boolean {
   return campaign.profileId !== campaign.rotatedProfileId;
 }
 
+// Only counts as "needs renewal" when it's actually in use — an expiring,
+// auto-renew-off domain nobody sends from is safe to let lapse (brief §3).
+export function computeNeedsRenewal(params: {
+  daysLeft: number;
+  renew: "Yes" | "No";
+  usedByCampaigns: string[];
+}): boolean {
+  return params.renew === "No" && params.daysLeft <= 60 && params.usedByCampaigns.length > 0;
+}
+
 export function buildAttentionList(
   campaigns: ViewCampaign[],
   domains: ViewDomain[],
@@ -40,7 +50,7 @@ export function buildAttentionList(
       items.push({
         severity: "critical",
         label: c.title,
-        detail: "No sending profile assigned",
+        detail: "No sending profile assigned — this campaign can't send at all",
         href: `/campaigns?q=${encodeURIComponent(c.title)}`,
       });
     }
@@ -48,7 +58,7 @@ export function buildAttentionList(
       items.push({
         severity: "critical",
         label: c.title,
-        detail: `Sending from an SBL-flagged domain (${c.domain})`,
+        detail: `Sending from a blacklisted domain (${c.domain})`,
         href: `/campaigns?q=${encodeURIComponent(c.title)}`,
       });
     }
@@ -56,28 +66,26 @@ export function buildAttentionList(
       items.push({
         severity: "critical",
         label: c.title,
-        detail: "profileId and rotatedprofiles.profile.profileid disagree",
+        detail: "Assigned sending profile doesn't match what it's actually sending from",
         href: `/campaigns?q=${encodeURIComponent(c.title)}`,
       });
     }
   }
 
+  // Only domains actually in use and needing a human to act show up here —
+  // an expiring domain with auto-renew on, or one nobody sends from, isn't
+  // a real fire to put out (brief §3).
   for (const d of domains) {
-    if (d.daysLeft <= 60 && d.daysLeft >= 0 && d.renew === "No") {
-      items.push({
-        severity: "warning",
-        label: d.domain,
-        detail: `Expires in ${d.daysLeft} days, auto-renew is off`,
-        href: `/domains?q=${encodeURIComponent(d.domain)}`,
-      });
-    } else if (d.daysLeft <= 60 && d.daysLeft >= 0) {
-      items.push({
-        severity: "warning",
-        label: d.domain,
-        detail: `Expires in ${d.daysLeft} days`,
-        href: `/domains?q=${encodeURIComponent(d.domain)}`,
-      });
-    }
+    if (!computeNeedsRenewal(d)) continue;
+    items.push({
+      severity: d.daysLeft < 0 ? "critical" : "warning",
+      label: d.domain,
+      detail:
+        d.daysLeft < 0
+          ? `Expired ${Math.abs(d.daysLeft)} days ago, auto-renew is off, still in use`
+          : `Expires in ${d.daysLeft} days, auto-renew is off, still in use`,
+      href: `/domains?q=${encodeURIComponent(d.domain)}`,
+    });
   }
 
   const severityRank = { critical: 0, warning: 1 } as const;

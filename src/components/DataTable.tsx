@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { InfoTip } from "@/components/InfoTip";
 
 export type Column<T> = {
   header: string;
   cell: (row: T) => React.ReactNode;
   mono?: boolean;
+  tooltip?: string;
 };
 
 export type ToggleFilter<T> = {
@@ -73,7 +75,10 @@ export function DataTable<T>({
             <tr className="border-b border-line bg-surface-2 text-left text-xs text-muted">
               {columns.map((c) => (
                 <th key={c.header} className="px-4 py-2 font-medium whitespace-nowrap">
-                  {c.header}
+                  <span className="inline-flex items-center gap-1.5">
+                    {c.header}
+                    {c.tooltip && <InfoTip text={c.tooltip} />}
+                  </span>
                 </th>
               ))}
             </tr>

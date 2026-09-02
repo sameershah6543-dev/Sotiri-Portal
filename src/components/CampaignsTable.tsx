@@ -2,6 +2,7 @@
 
 import { DataTable, type Column, type ToggleFilter } from "@/components/DataTable";
 import { StatusChip } from "@/components/StatusChip";
+import { CAMPAIGN_HELP } from "@/lib/glossary";
 import type { ViewCampaign } from "@/types";
 
 const STATUS_TONE = {
@@ -20,30 +21,46 @@ const columns: Column<ViewCampaign>[] = [
       </div>
     ),
   },
-  { header: "Status", cell: (c) => <StatusChip label={c.status} tone={STATUS_TONE[c.status]} /> },
-  { header: "Domain", mono: true, cell: (c) => c.domain },
   {
-    header: "Profile",
+    header: "Status",
+    tooltip: CAMPAIGN_HELP.status,
+    cell: (c) => <StatusChip label={c.status} tone={STATUS_TONE[c.status]} />,
+  },
+  { header: "Domain", mono: true, tooltip: CAMPAIGN_HELP.domain, cell: (c) => c.domain },
+  {
+    header: "Sending profile",
     mono: true,
+    tooltip: CAMPAIGN_HELP.profile,
     cell: (c) =>
       c.profileId ? (
         c.profileMismatch ? (
-          <StatusChip label={`${c.profileId} (mismatch)`} tone="critical" />
+          <StatusChip
+            label="Mismatch"
+            tone="critical"
+            title={`Assigned profile ${c.profileId} doesn't match what this campaign is actually sending from — check it matches "${c.client}" in the platform dashboard.`}
+          />
         ) : (
           c.profileId
         )
       ) : (
-        <StatusChip label="No profile" tone="critical" />
+        <StatusChip label="No profile" tone="critical" title="This campaign has no sending profile assigned and can't send." />
       ),
   },
-  { header: "HTTPS", cell: (c) => <StatusChip label={c.https ? "On" : "Off"} tone={c.https ? "good" : "neutral"} /> },
-  { header: "DMARC", mono: true, cell: (c) => c.dmarc },
+  {
+    header: "HTTPS",
+    tooltip: CAMPAIGN_HELP.https,
+    cell: (c) => <StatusChip label={c.https ? "On" : "Off"} tone={c.https ? "good" : "neutral"} />,
+  },
+  { header: "DMARC", mono: true, tooltip: CAMPAIGN_HELP.dmarc, cell: (c) => c.dmarc },
   {
     header: "Flags",
+    tooltip: CAMPAIGN_HELP.flags,
     cell: (c) => (
       <div className="flex gap-1.5 flex-wrap">
-        {c.sbl && <StatusChip label="SBL" tone="critical" />}
-        {c.isNewDomain && <StatusChip label="New domain" tone="neutral" />}
+        {c.sbl && <StatusChip label="SBL" tone="critical" title="This domain has been manually flagged as blacklisted." />}
+        {c.isNewDomain && (
+          <StatusChip label="New domain" tone="neutral" title="This campaign's domain was purchased/switched during a past cleanup." />
+        )}
       </div>
     ),
   },
