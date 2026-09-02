@@ -25,10 +25,13 @@ everyone else (team = edit, client = view-only).
 
 ## Connecting to the real platform
 
-`/api/refresh` (called every 6 hours by Vercel Cron, see `vercel.json`) pulls fresh data from the
+`/api/refresh` (called once daily by Vercel Cron, see `vercel.json`) pulls fresh data from the
 MCC platform API and safely does nothing until `MCC_API_BASE_URL` and `MCC_API_KEY` are set — get
 those from the platform's own dashboard (see `docs/MCC_PORTAL_CONTEXT.md` §4). The manually-entered
 data (SBL/DBL flags, notes, the replacement log) is never touched by a refresh.
+
+Vercel's Hobby plan caps Cron Jobs at once per day — the brief suggested every 4–6 hours, but that
+needs a Pro plan. Bump the schedule in `vercel.json` (and redeploy) if you upgrade later.
 
 ## Deploying
 
