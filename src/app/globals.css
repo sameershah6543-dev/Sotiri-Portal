@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #eef3f1;
+  --surface: #ffffff;
+  --surface-2: #e3eae7;
+  --ink: #10171a;
+  --muted: #5b6a67;
+  --line: #c9d2cf;
+  --accent: #1b6b72;
+  --accent-strong: #124d52;
+  --accent-soft: #dcebea;
+  --good: #256b41;
+  --good-soft: #e1f0e6;
+  --warn: #9a6205;
+  --warn-soft: #f7ecda;
+  --critical: #a5322a;
+  --critical-soft: #f7e3e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c1214;
+    --surface: #121a1c;
+    --surface-2: #182120;
+    --ink: #e7ecea;
+    --muted: #93a29e;
+    --line: #263230;
+    --accent: #4fa8ae;
+    --accent-strong: #79cbd0;
+    --accent-soft: #17302e;
+    --good: #5dbb89;
+    --good-soft: #16281f;
+    --warn: #e0a93b;
+    --warn-soft: #2c2313;
+    --critical: #e2695c;
+    --critical-soft: #2c1917;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #0c1214;
+  --surface: #121a1c;
+  --surface-2: #182120;
+  --ink: #e7ecea;
+  --muted: #93a29e;
+  --line: #263230;
+  --accent: #4fa8ae;
+  --accent-strong: #79cbd0;
+  --accent-soft: #17302e;
+  --good: #5dbb89;
+  --good-soft: #16281f;
+  --warn: #e0a93b;
+  --warn-soft: #2c2313;
+  --critical: #e2695c;
+  --critical-soft: #2c1917;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-critical: var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --font-display: var(--font-barlow-condensed);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-barlow-condensed), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-mono, code, td.mono, th.mono {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+}
