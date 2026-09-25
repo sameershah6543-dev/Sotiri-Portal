@@ -13,19 +13,27 @@ export function clientFromTitle(title: string): string {
 }
 
 export function hasProfileMismatch(campaign: PlatformCampaign): boolean {
-  if (campaign.rotatedProfileId === undefined) return false;
   if (campaign.profileId === null || campaign.rotatedProfileId === null) return false;
   return campaign.profileId !== campaign.rotatedProfileId;
 }
 
-// Only counts as "needs renewal" when it's actually in use — an expiring,
-// auto-renew-off domain nobody sends from is safe to let lapse (brief §3).
+// Only counts as "needs renewal" when it's actually in use — an expiring
+// domain nobody sends from is safe to let lapse (brief §3). The platform API
+// has no renewal field at all, so "renewMarked" is entirely team-tracked.
 export function computeNeedsRenewal(params: {
   daysLeft: number;
-  renew: "Yes" | "No";
+  renewMarked: boolean;
   usedByCampaigns: string[];
 }): boolean {
-  return params.renew === "No" && params.daysLeft <= 60 && params.usedByCampaigns.length > 0;
+  return !params.renewMarked && params.daysLeft <= 60 && params.usedByCampaigns.length > 0;
+}
+
+function blacklistDetail(d: ViewDomain): string {
+  const kind = [d.sbl && "SBL-listed", d.dbl && "DBL-listed"].filter(Boolean).join(", ");
+  if (d.usedByCampaigns.length > 0) {
+    return `${kind} — used by ${d.usedByCampaigns.length} campaign(s) — REPLACE ASAP`;
+  }
+  return `${kind} (not currently used by any campaign)`;
 }
 
 export function buildAttentionList(
@@ -37,9 +45,9 @@ export function buildAttentionList(
   for (const d of domains) {
     if (d.sbl || d.dbl) {
       items.push({
-        severity: "critical",
+        severity: d.usedByCampaigns.length > 0 ? "critical" : "warning",
         label: d.domain,
-        detail: [d.sbl && "SBL-listed", d.dbl && "DBL-listed"].filter(Boolean).join(", "),
+        detail: blacklistDetail(d),
         href: `/domains?q=${encodeURIComponent(d.domain)}`,
       });
     }
@@ -58,7 +66,7 @@ export function buildAttentionList(
       items.push({
         severity: "critical",
         label: c.title,
-        detail: `Sending from a blacklisted domain (${c.domain})`,
+        detail: `Sending from a blacklisted domain (${c.domain}) — REPLACE ASAP`,
         href: `/campaigns?q=${encodeURIComponent(c.title)}`,
       });
     }
@@ -72,9 +80,8 @@ export function buildAttentionList(
     }
   }
 
-  // Only domains actually in use and needing a human to act show up here —
-  // an expiring domain with auto-renew on, or one nobody sends from, isn't
-  // a real fire to put out (brief §3).
+  // Only domains actually in use and not yet marked renewed show up here —
+  // an expiring domain nobody sends from isn't a real fire to put out (brief §3).
   for (const d of domains) {
     if (!computeNeedsRenewal(d)) continue;
     items.push({
@@ -82,8 +89,8 @@ export function buildAttentionList(
       label: d.domain,
       detail:
         d.daysLeft < 0
-          ? `Expired ${Math.abs(d.daysLeft)} days ago, auto-renew is off, still in use`
-          : `Expires in ${d.daysLeft} days, auto-renew is off, still in use`,
+          ? `Expired ${Math.abs(d.daysLeft)} days ago, not marked for renewal, still in use`
+          : `Expires in ${d.daysLeft} days, not marked for renewal, still in use`,
       href: `/domains?q=${encodeURIComponent(d.domain)}`,
     });
   }

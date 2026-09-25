@@ -38,7 +38,7 @@ export async function getMergedState(): Promise<MergedState> {
   const flagsByDomain = new Map<string, DomainFlag>(
     flagRows.map((r) => [
       r.domain,
-      { domain: r.domain, sbl: r.sbl, dbl: r.dbl, originalNote: r.originalNote },
+      { domain: r.domain, sbl: r.sbl, dbl: r.dbl, renewMarked: r.renewMarked, originalNote: r.originalNote },
     ]),
   );
   const newDomains = new Set(replacementRows.map((r) => r.newDomain));
@@ -63,15 +63,17 @@ export async function getMergedState(): Promise<MergedState> {
   const viewDomains: ViewDomain[] = platformDomains.map((d) => {
     const flag = flagsByDomain.get(d.domain);
     const dLeft = daysLeft(d.expireDate);
+    const renewMarked = flag?.renewMarked ?? false;
     return {
       ...d,
       daysLeft: dLeft,
       sbl: flag?.sbl ?? false,
       dbl: flag?.dbl ?? false,
+      renewMarked,
       originalNote: flag?.originalNote ?? null,
       isNewDomain: newDomains.has(d.domain),
       replacedFrom: replacementByNewDomain.get(d.domain) ?? null,
-      needsRenewal: computeNeedsRenewal({ daysLeft: dLeft, renew: d.renew, usedByCampaigns: d.usedByCampaigns }),
+      needsRenewal: computeNeedsRenewal({ daysLeft: dLeft, renewMarked, usedByCampaigns: d.usedByCampaigns }),
     };
   });
 
@@ -131,6 +133,31 @@ export async function addDomainNote(params: { domain: string; author: string; te
   await addNote(params.author, "note", params.domain, params.text);
 }
 
+export async function setRenewalMarked(params: {
+  domain: string;
+  value: boolean;
+  author: string;
+  note?: string;
+}) {
+  const { domain, value, author, note } = params;
+
+  await db
+    .insert(domainFlags)
+    .values({ domain, renewMarked: value, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: domainFlags.domain,
+      set: { renewMarked: value, updatedAt: new Date() },
+    });
+
+  const type: NoteType = value ? "renewal-marked" : "renewal-unmarked";
+  await addNote(
+    author,
+    type,
+    domain,
+    note?.trim() || (value ? "Marked for renewal" : "Renewal mark cleared"),
+  );
+}
+
 export async function logReplacement(params: {
   newDomain: string;
   oldDomain: string;
@@ -144,6 +171,20 @@ export async function logReplacement(params: {
   const { author, ...row } = params;
   await db.insert(replacements).values(row);
   await addNote(author, "replacement", `${row.oldDomain} → ${row.newDomain}`, row.reason);
+}
+
+export async function getCurrentSnapshotParts() {
+  const [snapshot] = await db.select().from(platformSnapshot).limit(1);
+  return {
+    campaigns: (snapshot?.campaigns as PlatformCampaign[] | undefined) ?? [],
+    unusedProfiles: (snapshot?.unusedProfiles as UnusedProfile[] | undefined) ?? [],
+    accountInfo: (snapshot?.accountInfo as AccountInfo | undefined) ?? null,
+  };
+}
+
+export async function listDomainsNeedingRenewalEmail(): Promise<Map<string, { renewMarked: boolean }>> {
+  const flagRows = await db.select().from(domainFlags);
+  return new Map(flagRows.map((r) => [r.domain, { renewMarked: r.renewMarked }]));
 }
 
 export async function upsertSnapshot(params: {

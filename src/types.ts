@@ -1,15 +1,15 @@
 // Platform-sourced shapes (overwritten wholesale on every /api/refresh pull).
+// Only built from email/getcampaigndetail — the list endpoint (getcampaigns)
+// doesn't return domain/profileid/https/dmarc at all (confirmed live).
 export type PlatformCampaign = {
   id: string;
   title: string;
   status: "Pending" | "Paused" | "Completed";
   profileId: string | null;
   domain: string;
-  https: boolean;
-  dmarc: string;
-  // Present on detail pulls (email/getcampaigndetail) only; used to catch the
-  // profileId vs rotatedprofiles mismatch landmine documented in the brief §4.
-  rotatedProfileId?: string | null;
+  // Used to catch the profileid vs rotatedprofiles mismatch landmine
+  // documented in the brief §4.
+  rotatedProfileId: string | null;
 };
 
 export type PlatformDomain = {
@@ -19,7 +19,6 @@ export type PlatformDomain = {
   https: boolean;
   dmarc: string;
   expireDate: string; // YYYY-MM-DD
-  renew: "Yes" | "No";
   hasProfile: boolean;
   profileId: string | null;
   ip: string | null;
@@ -33,8 +32,7 @@ export type UnusedProfile = {
 };
 
 export type AccountInfo = {
-  billingPeriodStart: string;
-  billingPeriodEnd: string;
+  billingPeriod: string; // e.g. "August 28, 2026 - September 28, 2026, 12:00 am" — one combined string from the platform, not separate start/end fields
   packageSize: number;
   sentThisCycle: number;
   totalIps: number;
@@ -46,6 +44,7 @@ export type DomainFlag = {
   domain: string;
   sbl: boolean;
   dbl: boolean;
+  renewMarked: boolean;
   originalNote: string | null;
 };
 
@@ -60,7 +59,15 @@ export type Replacement = {
   date: string; // YYYY-MM-DD
 };
 
-export type NoteType = "sbl-on" | "sbl-off" | "dbl-on" | "dbl-off" | "note" | "replacement";
+export type NoteType =
+  | "sbl-on"
+  | "sbl-off"
+  | "dbl-on"
+  | "dbl-off"
+  | "renewal-marked"
+  | "renewal-unmarked"
+  | "note"
+  | "replacement";
 
 export type Note = {
   id: number;
@@ -91,12 +98,13 @@ export type ViewDomain = PlatformDomain & {
   daysLeft: number;
   sbl: boolean;
   dbl: boolean;
+  renewMarked: boolean; // manual — team confirms they've renewed/checked this domain
   originalNote: string | null;
   isNewDomain: boolean;
   replacedFrom: ReplacedFrom | null;
-  // True only when auto-renew is off, it's actually expiring soon (or already
-  // expired), AND a campaign is still using it — an unused domain with
-  // auto-renew off is fine to let lapse (brief §3's jacksonoilsolventsinc.com
+  // True only when it isn't marked renewed, it's actually expiring soon (or
+  // already expired), AND a campaign is still using it — an unused expiring
+  // domain is fine to let lapse (brief §3's jacksonoilsolventsinc.com
   // example), so it's deliberately not flagged here.
   needsRenewal: boolean;
 };

@@ -3,6 +3,7 @@
 import { DataTable, type Column, type ToggleFilter } from "@/components/DataTable";
 import { StatusChip } from "@/components/StatusChip";
 import { DomainActions } from "@/components/DomainActions";
+import { RenewalToggle } from "@/components/RenewalToggle";
 import { DOMAIN_HELP, replacementTooltip } from "@/lib/glossary";
 import type { ViewDomain } from "@/types";
 
@@ -10,7 +11,6 @@ function buildColumns(isTeam: boolean): Column<ViewDomain>[] {
   const cols: Column<ViewDomain>[] = [
     { header: "Domain", mono: true, cell: (d) => d.domain },
     { header: "Status", tooltip: DOMAIN_HELP.status, cell: (d) => d.status },
-    { header: "DMARC", mono: true, tooltip: DOMAIN_HELP.dmarc, cell: (d) => d.dmarc },
     {
       header: "Expires",
       tooltip: DOMAIN_HELP.expires,
@@ -28,9 +28,9 @@ function buildColumns(isTeam: boolean): Column<ViewDomain>[] {
       ),
     },
     {
-      header: "Auto-renew",
-      tooltip: DOMAIN_HELP.autoRenew,
-      cell: (d) => <StatusChip label={d.renew} tone={d.renew === "Yes" ? "good" : "warn"} />,
+      header: "Renewal",
+      tooltip: DOMAIN_HELP.renewal,
+      cell: (d) => <RenewalToggle domain={d.domain} renewMarked={d.renewMarked} isTeam={isTeam} />,
     },
     {
       header: "Profile / IP",
@@ -54,28 +54,36 @@ function buildColumns(isTeam: boolean): Column<ViewDomain>[] {
         <div className="flex gap-1.5 flex-wrap">
           {d.sbl && (
             <StatusChip
-              label="SBL"
+              label={d.usedByCampaigns.length > 0 ? "SBL — REPLACE ASAP" : "SBL"}
               tone="critical"
-              title="Spamhaus Block List — manually flagged as a spam source. Consider replacing this domain."
+              title={
+                d.usedByCampaigns.length > 0
+                  ? `Spamhaus Block List, and ${d.usedByCampaigns.length} campaign(s) are still sending from it — replace this domain as soon as possible.`
+                  : "Spamhaus Block List — flagged, but no campaign is currently using this domain."
+              }
             />
           )}
           {d.dbl && (
             <StatusChip
-              label="DBL"
+              label={d.usedByCampaigns.length > 0 ? "DBL — REPLACE ASAP" : "DBL"}
               tone="critical"
-              title="Spamhaus Domain Block List — manually flagged for hosting bad content. Consider replacing this domain."
+              title={
+                d.usedByCampaigns.length > 0
+                  ? `Spamhaus Domain Block List, and ${d.usedByCampaigns.length} campaign(s) are still sending from it — replace this domain as soon as possible.`
+                  : "Spamhaus Domain Block List — flagged, but no campaign is currently using this domain."
+              }
             />
           )}
           {d.needsRenewal && (
             <StatusChip
               label="Needs renewal"
               tone="critical"
-              title="Auto-renew is off and a campaign is still using this domain — renew it manually before it expires."
+              title="Not marked for renewal and a campaign is still using this domain — renew it before it expires."
             />
           )}
           {d.isNewDomain && (
             <StatusChip
-              label="Replaced"
+              label={d.replacedFrom ? `Replaced ${d.replacedFrom.oldDomain}` : "Replaced"}
               tone="neutral"
               title={d.replacedFrom ? replacementTooltip(d.replacedFrom) : "This domain replaced an older one."}
             />

@@ -46,13 +46,18 @@ const columns: Column<ViewCampaign>[] = [
         <StatusChip label="No profile" tone="critical" title="This campaign has no sending profile assigned and can't send." />
       ),
   },
-  { header: "DMARC", mono: true, tooltip: CAMPAIGN_HELP.dmarc, cell: (c) => c.dmarc },
   {
     header: "Flags",
     tooltip: CAMPAIGN_HELP.flags,
     cell: (c) => (
       <div className="flex gap-1.5 flex-wrap">
-        {c.sbl && <StatusChip label="SBL" tone="critical" title="This domain has been manually flagged as blacklisted." />}
+        {c.sbl && (
+          <StatusChip
+            label="SBL — REPLACE ASAP"
+            tone="critical"
+            title="This domain has been manually flagged as blacklisted and this campaign is still sending from it."
+          />
+        )}
         {c.isNewDomain && (
           <StatusChip label="New domain" tone="neutral" title="This campaign's domain was purchased/switched during a past cleanup." />
         )}

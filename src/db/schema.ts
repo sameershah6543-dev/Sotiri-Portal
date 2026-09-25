@@ -35,6 +35,11 @@ export const domainFlags = pgTable("domain_flags", {
   domain: text("domain").primaryKey(),
   sbl: boolean("sbl").notNull().default(false),
   dbl: boolean("dbl").notNull().default(false),
+  // The MCC platform API has no renewal/auto-renew field at all (confirmed
+  // against a live pull) — this is entirely team-tracked: true once someone
+  // has renewed/confirmed renewal for this domain, cleared automatically
+  // once past the old expiry date so it doesn't stay stale forever.
+  renewMarked: boolean("renew_marked").notNull().default(false),
   originalNote: text("original_note"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -57,6 +62,8 @@ export const noteTypeEnum = pgEnum("note_type", [
   "sbl-off",
   "dbl-on",
   "dbl-off",
+  "renewal-marked",
+  "renewal-unmarked",
   "note",
   "replacement",
 ]);

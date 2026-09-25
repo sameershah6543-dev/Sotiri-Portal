@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mccConfigured, mccGet } from "@/lib/mcc-client";
-import { upsertSnapshot } from "@/db/queries";
+import { upsertSnapshot, listDomainsNeedingRenewalEmail } from "@/db/queries";
+import { sendRenewalAlertEmail } from "@/lib/notify";
+import { computeNeedsRenewal, daysLeft } from "@/lib/derive";
 import type { AccountInfo, PlatformCampaign, PlatformDomain, UnusedProfile } from "@/types";
 
 export const maxDuration = 60;
 
-// The real platform payload shape is unknown until MCC_API_KEY is live (build
-// plan step 6) — this stands in for whatever getcampaigns/getdomains/etc.
-// actually return, with field access cast per brief §3/§4 below.
+// Confirmed against a live pull (2026-09-25) rather than assumed from the
+// brief — the real payloads differ from what §3/§4 originally guessed at.
 type RawRecord = Record<string, unknown>;
+
+// Only these campaign-title prefixes are treated as this portal's book of
+// business. The live account also carries ~1400 "PP"-titled and ~40
+// "Northland"-titled campaigns etc. that belong to unrelated clients on the
+// same shared MCC account — confirm this list is complete/correct before
+// relying on it; it's the one part of this file that isn't just "what the
+// API returns," it's a business-scope judgment call.
+const RELEVANT_TITLE_PREFIXES = ["CFN", "Spinx", "PAWP"];
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +32,8 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 // Runs `fn` over `items` with at most `limit` in flight at once, so a full
-// campaign-detail sweep doesn't hammer the platform with 179 concurrent requests.
+// campaign-detail sweep doesn't hammer the platform with hundreds of
+// concurrent requests.
 async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,
@@ -39,6 +49,26 @@ async function mapWithConcurrency<T, R>(
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return results;
+}
+
+// The list endpoints (getcampaigns/getdomains) are paginated — `records` on
+// the first page tells us the true total, so keep paging until we have it all.
+async function fetchAllPages(
+  action: string,
+  itemsKey: string,
+  pageSize = 1000,
+): Promise<RawRecord[]> {
+  const first = await mccGet<RawRecord>("email", action, { start: "0", limit: String(pageSize) });
+  const total = Number(first.records ?? 0);
+  let items = (first[itemsKey] as RawRecord[] | undefined) ?? [];
+  for (let start = items.length; start < total; start += pageSize) {
+    const page = await mccGet<RawRecord>("email", action, {
+      start: String(start),
+      limit: String(pageSize),
+    });
+    items = items.concat((page[itemsKey] as RawRecord[] | undefined) ?? []);
+  }
+  return items;
 }
 
 // Vercel Cron triggers a GET request; POST is kept too so it can be triggered
@@ -62,33 +92,32 @@ async function handleRefresh(req: NextRequest) {
   }
 
   try {
-    // Field names below follow brief §3/§4. Confirm against the real payload
-    // shape once MCC_API_KEY is live (build plan step 6) and adjust here only.
-    const [rawCampaigns, rawDomains, rawProfiles, rawAccount] = await Promise.all([
-      mccGet<RawRecord[]>("email", "getcampaigns"),
-      mccGet<RawRecord[]>("email", "getdomains"),
-      mccGet<RawRecord[]>("email", "getsendingprofiles"),
+    const [rawCampaignList, rawDomains, rawProfiles, rawAccount] = await Promise.all([
+      fetchAllPages("getcampaigns", "campaign"),
+      fetchAllPages("getdomains", "domain"),
+      fetchAllPages("getsendingprofiles", "profile"),
       mccGet<RawRecord>("email", "getaccountinfo"),
     ]);
 
-    const campaigns: PlatformCampaign[] = await mapWithConcurrency(rawCampaigns, 8, async (c) => {
-      let rotatedProfileId: string | null | undefined;
-      try {
-        const detail = await mccGet<RawRecord>("email", "getcampaigndetail", { id: String(c.id) });
-        const rotatedprofiles = detail.rotatedprofiles as RawRecord | undefined;
-        const profile = rotatedprofiles?.profile as RawRecord | undefined;
-        rotatedProfileId = (profile?.profileid as string | undefined) ?? null;
-      } catch (err) {
-        console.warn(`[refresh] getcampaigndetail failed for campaign ${c.id}`, err);
-      }
+    // Only pull full detail (domain/profile/rotation) for campaigns that
+    // matter to this portal: active (not Completed) and in-scope by title.
+    const relevantCampaigns = rawCampaignList.filter((c) => {
+      const status = c.status as string;
+      const title = c.title as string;
+      return status !== "Completed" && RELEVANT_TITLE_PREFIXES.some((p) => title.startsWith(p));
+    });
+
+    const campaigns: PlatformCampaign[] = await mapWithConcurrency(relevantCampaigns, 8, async (c) => {
+      const detail = await mccGet<RawRecord>("email", "getcampaigndetail", { id: String(c.id) });
+      const rotatedprofiles = detail.rotatedprofiles as RawRecord | undefined;
+      const profile = rotatedprofiles?.profile as RawRecord | undefined;
+      const rotatedProfileId = (profile?.profileid as string | undefined) ?? null;
       return {
         id: String(c.id),
-        title: c.title as string,
-        status: c.status as PlatformCampaign["status"],
-        profileId: (c.profileid as string | null) ?? null,
-        domain: c.domain as string,
-        https: Boolean(c.https),
-        dmarc: c.dmarc as string,
+        title: detail.title as string,
+        status: detail.status as PlatformCampaign["status"],
+        profileId: (detail.profileid as string | null) ?? null,
+        domain: detail.domain as string,
         rotatedProfileId,
       };
     });
@@ -108,31 +137,61 @@ async function handleRefresh(req: NextRequest) {
         domain,
         domainId: String(d.id),
         status: d.status as string,
-        https: Boolean(d.https),
-        dmarc: d.dmarc as string,
-        expireDate: d.expiredateiso as string,
-        renew: d.autorenew ? "Yes" : "No",
-        hasProfile: Boolean(d.profileid),
-        profileId: (d.profileid as string | null) ?? null,
-        ip: (d.ip as string | null) ?? null,
+        https: d.https === "1" || d.https === true,
+        dmarc: d.dmarcpolicy as string,
+        expireDate: (d.expiredateiso as string).slice(0, 10),
+        hasProfile: usedByCampaigns.has(domain) || assignedProfileIds.has(domain),
+        profileId: null,
+        ip: null,
         usedByCampaigns: usedByCampaigns.get(domain) ?? [],
       };
     });
+
+    // Sending profiles carry the domain/IP pairing directly (domains
+    // themselves don't) — backfill profileId/ip/hasProfile from there.
+    const profileByDomain = new Map(rawProfiles.map((p) => [p.domain as string, p]));
+    for (const domain of domains) {
+      const profile = profileByDomain.get(domain.domain);
+      if (profile) {
+        domain.profileId = String(profile.id);
+        domain.ip = profile.ip as string;
+        domain.hasProfile = true;
+      }
+    }
 
     const unusedProfiles: UnusedProfile[] = rawProfiles
       .filter((p) => !assignedProfileIds.has(String(p.id)))
       .map((p) => ({ profileId: String(p.id), domain: p.domain as string, ip: p.ip as string }));
 
+    // The live payload has one combined "billingperiod" string, not separate
+    // start/end fields — stored as-is rather than parsed, to avoid brittle
+    // date-format guessing.
     const accountInfo: AccountInfo = {
-      billingPeriodStart: rawAccount.billingperiodstart as string,
-      billingPeriodEnd: rawAccount.billingperiodend as string,
-      packageSize: Number(rawAccount.packagesize),
-      sentThisCycle: Number(rawAccount.sentthiscycle),
+      billingPeriod: rawAccount.billingperiod as string,
+      packageSize: Number(String(rawAccount.packagesize).replace(/,/g, "")),
+      sentThisCycle: Number(String(rawAccount.emailsentcycle).replace(/,/g, "")),
       totalIps: Number(rawAccount.totalips),
       complaints: Number(rawAccount.complaints),
     };
 
     await upsertSnapshot({ campaigns, domains, unusedProfiles, accountInfo });
+
+    // Anything expiring soon (or expired), still in use, and not yet marked
+    // renewed by the team gets a batched alert — see src/lib/notify.ts.
+    const stillNeedsRenewal = await listDomainsNeedingRenewalEmail();
+    const needsRenewalNow = domains.filter((d) => {
+      const flagged = stillNeedsRenewal.get(d.domain);
+      return computeNeedsRenewal({
+        daysLeft: daysLeft(d.expireDate),
+        renewMarked: flagged?.renewMarked ?? false,
+        usedByCampaigns: d.usedByCampaigns,
+      });
+    });
+    if (needsRenewalNow.length > 0) {
+      await sendRenewalAlertEmail(
+        needsRenewalNow.map((d) => ({ domain: d.domain, expireDate: d.expireDate, daysLeft: daysLeft(d.expireDate) })),
+      );
+    }
 
     return NextResponse.json({ ok: true, campaigns: campaigns.length, domains: domains.length });
   } catch (err) {

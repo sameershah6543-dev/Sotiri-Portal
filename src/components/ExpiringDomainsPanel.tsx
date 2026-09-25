@@ -1,6 +1,7 @@
 import type { ViewDomain } from "@/types";
+import { RenewalToggle } from "@/components/RenewalToggle";
 
-export function ExpiringDomainsPanel({ domains }: { domains: ViewDomain[] }) {
+export function ExpiringDomainsPanel({ domains, isTeam }: { domains: ViewDomain[]; isTeam: boolean }) {
   const expiring = domains
     .filter((d) => d.daysLeft <= 30)
     .sort((a, b) => a.daysLeft - b.daysLeft);
@@ -14,13 +15,14 @@ export function ExpiringDomainsPanel({ domains }: { domains: ViewDomain[] }) {
       ) : (
         <ul className="flex flex-col divide-y divide-line">
           {expiring.map((d) => (
-            <li key={d.domainId} className="flex items-center justify-between gap-3 py-2 text-sm">
+            <li key={d.domainId} className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
               <span className="font-mono truncate">{d.domain}</span>
-              <span className="flex items-center gap-3 shrink-0">
+              <span className="flex flex-wrap items-center gap-3 shrink-0">
                 <span className="font-mono text-xs text-muted">{d.expireDate}</span>
                 <span className={`text-xs font-medium ${d.daysLeft < 0 ? "text-critical" : "text-warn"}`}>
                   {d.daysLeft < 0 ? `expired ${Math.abs(d.daysLeft)}d ago` : `${d.daysLeft}d left`}
                 </span>
+                <RenewalToggle domain={d.domain} renewMarked={d.renewMarked} isTeam={isTeam} />
               </span>
             </li>
           ))}

@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { getPageData } from "@/lib/page-data";
 import { buildAttentionList, buildGaugeCounts } from "@/lib/derive";
 import { GaugeStrip } from "@/components/GaugeStrip";
@@ -5,7 +6,8 @@ import { AttentionRail } from "@/components/AttentionRail";
 import { ExpiringDomainsPanel } from "@/components/ExpiringDomainsPanel";
 
 export default async function OverviewPage() {
-  const data = await getPageData();
+  const [data, session] = await Promise.all([getPageData(), auth()]);
+  const isTeam = session?.user?.role === "team";
   const counts = buildGaugeCounts(data.campaigns, data.domains, data.unusedProfiles.length);
   const attention = buildAttentionList(data.campaigns, data.domains);
 
@@ -28,11 +30,9 @@ export default async function OverviewPage() {
             <h2 className="font-display text-lg font-semibold mb-3">Account</h2>
             {data.accountInfo ? (
               <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-                <div>
+                <div className="col-span-2 sm:col-span-3">
                   <dt className="text-muted text-xs">Billing period</dt>
-                  <dd className="font-mono">
-                    {data.accountInfo.billingPeriodStart} – {data.accountInfo.billingPeriodEnd}
-                  </dd>
+                  <dd className="font-mono">{data.accountInfo.billingPeriod}</dd>
                 </div>
                 <div>
                   <dt className="text-muted text-xs">Package size</dt>
@@ -56,7 +56,7 @@ export default async function OverviewPage() {
             )}
           </div>
 
-          <ExpiringDomainsPanel domains={data.domains} />
+          <ExpiringDomainsPanel domains={data.domains} isTeam={isTeam} />
         </div>
       </div>
     </div>

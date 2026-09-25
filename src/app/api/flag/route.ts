@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, guardErrorResponse } from "@/lib/auth-guards";
-import { addDomainNote, setDomainFlag } from "@/db/queries";
+import { addDomainNote, setDomainFlag, setRenewalMarked } from "@/db/queries";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +16,16 @@ export async function POST(req: NextRequest) {
       await setDomainFlag({
         domain,
         field: body.field,
+        value: body.value,
+        author: user.email ?? "unknown",
+        note: typeof body.note === "string" ? body.note : undefined,
+      });
+    } else if (body.field === "renewMarked") {
+      if (typeof body.value !== "boolean") {
+        return NextResponse.json({ error: "value must be boolean" }, { status: 400 });
+      }
+      await setRenewalMarked({
+        domain,
         value: body.value,
         author: user.email ?? "unknown",
         note: typeof body.note === "string" ? body.note : undefined,

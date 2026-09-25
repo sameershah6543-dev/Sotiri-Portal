@@ -9,6 +9,8 @@ const TYPE_LABEL: Record<Note["type"], string> = {
   "sbl-off": "SBL cleared",
   "dbl-on": "DBL flagged",
   "dbl-off": "DBL cleared",
+  "renewal-marked": "Marked for renewal",
+  "renewal-unmarked": "Renewal mark cleared",
   note: "Note",
   replacement: "Replacement",
 };
@@ -18,6 +20,8 @@ const TYPE_TONE: Record<Note["type"], "critical" | "good" | "neutral"> = {
   "dbl-on": "critical",
   "sbl-off": "good",
   "dbl-off": "good",
+  "renewal-marked": "good",
+  "renewal-unmarked": "neutral",
   note: "neutral",
   replacement: "neutral",
 };
