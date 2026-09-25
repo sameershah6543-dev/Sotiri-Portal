@@ -11,14 +11,6 @@ export const maxDuration = 60;
 // brief — the real payloads differ from what §3/§4 originally guessed at.
 type RawRecord = Record<string, unknown>;
 
-// Only these campaign-title prefixes are treated as this portal's book of
-// business. The live account also carries ~1400 "PP"-titled and ~40
-// "Northland"-titled campaigns etc. that belong to unrelated clients on the
-// same shared MCC account — confirm this list is complete/correct before
-// relying on it; it's the one part of this file that isn't just "what the
-// API returns," it's a business-scope judgment call.
-const RELEVANT_TITLE_PREFIXES = ["CFN", "Spinx", "PAWP"];
-
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
@@ -99,13 +91,11 @@ async function handleRefresh(req: NextRequest) {
       mccGet<RawRecord>("email", "getaccountinfo"),
     ]);
 
-    // Only pull full detail (domain/profile/rotation) for campaigns that
-    // matter to this portal: active (not Completed) and in-scope by title.
-    const relevantCampaigns = rawCampaignList.filter((c) => {
-      const status = c.status as string;
-      const title = c.title as string;
-      return status !== "Completed" && RELEVANT_TITLE_PREFIXES.some((p) => title.startsWith(p));
-    });
+    // Every client on the account is in scope — only status matters: once a
+    // campaign completes it drops off the portal entirely (client's own
+    // instruction), so only pull full detail (domain/profile/rotation) for
+    // the ones still Pending or Paused.
+    const relevantCampaigns = rawCampaignList.filter((c) => c.status !== "Completed");
 
     const campaigns: PlatformCampaign[] = await mapWithConcurrency(relevantCampaigns, 8, async (c) => {
       const detail = await mccGet<RawRecord>("email", "getcampaigndetail", { id: String(c.id) });
