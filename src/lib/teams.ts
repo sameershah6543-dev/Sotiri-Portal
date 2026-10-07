@@ -1,7 +1,9 @@
-// Notifies the team's Microsoft Teams channel when a client files a request.
+// Notifies the team on Microsoft Teams when a client files a request.
 // Safely no-ops without TEAMS_WEBHOOK_URL, same pattern as notify.ts/mcc-client.ts.
-// Uses a Teams "Incoming Webhook" channel connector — Teams channel → ⋯ →
-// Connectors → Incoming Webhook → copy the URL into that env var.
+// Points at a Power Automate flow's HTTP trigger (not the legacy "Incoming
+// Webhook" connector) — Microsoft's standard "Post to a Teams chat/channel
+// when a webhook request is received" template, which posts whatever's in
+// the `text` field of the JSON body into the configured chat.
 
 const TEAMS_WEBHOOK_URL = process.env.TEAMS_WEBHOOK_URL;
 
@@ -16,16 +18,21 @@ export async function sendRequestTeamsNotification(params: {
     return;
   }
 
+  const text =
+    `**New portal request: ${params.subject}**\n\n` +
+    `Type: ${params.type}\n\n` +
+    `From: ${params.requestedBy}\n\n` +
+    params.description;
+
   const res = await fetch(TEAMS_WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      "@type": "MessageCard",
-      "@context": "http://schema.org/extensions",
-      themeColor: "1B6B72",
-      summary: `New portal request: ${params.subject}`,
-      title: `New request: ${params.subject}`,
-      text: `**Type:** ${params.type}\n\n**From:** ${params.requestedBy}\n\n${params.description}`,
+      text,
+      subject: params.subject,
+      type: params.type,
+      description: params.description,
+      requestedBy: params.requestedBy,
     }),
   });
 
