@@ -15,6 +15,13 @@
       "when": 1790356908382,
       "tag": "0001_broad_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791384435073,
+      "tag": "0002_fearless_surge",
+      "breakpoints": true
     }
   ]
 }

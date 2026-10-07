@@ -99,7 +99,12 @@ export function buildAttentionList(
   return items.sort((a, b) => severityRank[a.severity] - severityRank[b.severity]);
 }
 
-export function buildGaugeCounts(campaigns: ViewCampaign[], domains: ViewDomain[], spareProfiles: number): GaugeCounts {
+export function buildGaugeCounts(
+  campaigns: ViewCampaign[],
+  domains: ViewDomain[],
+  spareProfiles: number,
+  openRequests: number,
+): GaugeCounts {
   const inFlight = campaigns.filter((c) => c.status === "Pending").length;
   const flagged = domains.filter((d) => d.sbl || d.dbl).length;
   const expiringSoon = domains.filter((d) => d.daysLeft <= 60 && d.daysLeft >= 0).length;
@@ -109,5 +114,6 @@ export function buildGaugeCounts(campaigns: ViewCampaign[], domains: ViewDomain[
     flaggedDomains: flagged,
     expiringSoon,
     spareProfiles: spareProfiles,
+    openRequests,
   };
 }

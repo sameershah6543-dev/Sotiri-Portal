@@ -67,7 +67,9 @@ export type NoteType =
   | "renewal-marked"
   | "renewal-unmarked"
   | "note"
-  | "replacement";
+  | "replacement"
+  | "request-new"
+  | "request-status";
 
 export type Note = {
   id: number;
@@ -121,4 +123,19 @@ export type GaugeCounts = {
   flaggedDomains: number;
   expiringSoon: number;
   spareProfiles: number;
+  openRequests: number;
+};
+
+export type RequestType = "new_domain" | "remove_domain" | "other";
+export type RequestStatus = "open" | "in_progress" | "done";
+
+export type ClientRequest = {
+  id: number;
+  type: RequestType;
+  subject: string;
+  description: string;
+  requestedBy: string;
+  status: RequestStatus;
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
 };

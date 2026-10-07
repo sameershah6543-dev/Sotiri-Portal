@@ -13,6 +13,8 @@ const TYPE_LABEL: Record<Note["type"], string> = {
   "renewal-unmarked": "Renewal mark cleared",
   note: "Note",
   replacement: "Replacement",
+  "request-new": "Request filed",
+  "request-status": "Request updated",
 };
 
 const TYPE_TONE: Record<Note["type"], "critical" | "good" | "neutral"> = {
@@ -24,6 +26,8 @@ const TYPE_TONE: Record<Note["type"], "critical" | "good" | "neutral"> = {
   "renewal-unmarked": "neutral",
   note: "neutral",
   replacement: "neutral",
+  "request-new": "neutral",
+  "request-status": "neutral",
 };
 
 const columns: Column<Note>[] = [

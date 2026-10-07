@@ -66,7 +66,25 @@ export const noteTypeEnum = pgEnum("note_type", [
   "renewal-unmarked",
   "note",
   "replacement",
+  "request-new",
+  "request-status",
 ]);
+
+export const requestTypeEnum = pgEnum("request_type", ["new_domain", "remove_domain", "other"]);
+export const requestStatusEnum = pgEnum("request_status", ["open", "in_progress", "done"]);
+
+// Client-or-team-filed requests ("add this domain", "remove that one", etc).
+// Manual, survives every refresh — nothing the platform API would ever touch.
+export const requests = pgTable("requests", {
+  id: serial("id").primaryKey(),
+  type: requestTypeEnum("type").notNull().default("other"),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  requestedBy: text("requested_by").notNull(),
+  status: requestStatusEnum("status").notNull().default("open"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 // Append-only audit trail. Survives every refresh.
 export const notes = pgTable("notes", {

@@ -46,6 +46,12 @@ export function GaugeStrip({ counts }: { counts: GaugeCounts }) {
         tone={counts.expiringSoon > 0 ? "warn" : undefined}
       />
       <Tile label="Spare profiles" help={GAUGE_HELP.spareProfiles} value={String(counts.spareProfiles)} />
+      <Tile
+        label="Open requests"
+        help={GAUGE_HELP.openRequests}
+        value={String(counts.openRequests)}
+        tone={counts.openRequests > 0 ? "warn" : undefined}
+      />
     </div>
   );
 }

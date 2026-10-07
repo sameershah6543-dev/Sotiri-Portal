@@ -6,6 +6,7 @@ export const GAUGE_HELP = {
   flaggedDomains: "Domains someone has manually marked as blacklisted (SBL or DBL) after checking Spamhaus or similar. This isn't checked automatically — see Domains for details.",
   expiringSoon: "Domains whose registration expires within 60 days, whether or not that actually needs action. Check the 'Needs renewal' flag on the Domains tab for the ones that really do.",
   spareProfiles: "Sending profiles (domain + IP pairs) that exist on the platform but aren't assigned to any campaign — available to use for a new campaign or a replacement.",
+  openRequests: "Requests filed by anyone (client or team) on the Requests tab that aren't marked Done yet.",
 } as const;
 
 export const CAMPAIGN_HELP = {

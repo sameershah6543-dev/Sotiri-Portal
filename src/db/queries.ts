@@ -1,14 +1,17 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "./client";
-import { domainFlags, notes, platformSnapshot, replacements, users } from "./schema";
+import { domainFlags, notes, platformSnapshot, replacements, requests, users } from "./schema";
 import type {
   AccountInfo,
+  ClientRequest,
   DomainFlag,
   Note,
   NoteType,
   PlatformCampaign,
   PlatformDomain,
   Replacement,
+  RequestStatus,
+  RequestType,
   Role,
   UnusedProfile,
   ViewCampaign,
@@ -24,6 +27,7 @@ export type MergedState = {
   accountInfo: AccountInfo | null;
   replacements: Replacement[];
   notes: Note[];
+  requests: ClientRequest[];
 };
 
 export async function getMergedState(): Promise<MergedState> {
@@ -34,6 +38,7 @@ export async function getMergedState(): Promise<MergedState> {
     .from(replacements)
     .orderBy(desc(replacements.date), desc(replacements.id));
   const noteRows = await db.select().from(notes).orderBy(desc(notes.ts), desc(notes.id));
+  const requestRows = await db.select().from(requests).orderBy(desc(requests.createdAt));
 
   const flagsByDomain = new Map<string, DomainFlag>(
     flagRows.map((r) => [
@@ -100,6 +105,16 @@ export async function getMergedState(): Promise<MergedState> {
       type: n.type,
       target: n.target,
       text: n.text,
+    })),
+    requests: requestRows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      subject: r.subject,
+      description: r.description,
+      requestedBy: r.requestedBy,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
     })),
   };
 }
@@ -171,6 +186,28 @@ export async function logReplacement(params: {
   const { author, ...row } = params;
   await db.insert(replacements).values(row);
   await addNote(author, "replacement", `${row.oldDomain} → ${row.newDomain}`, row.reason);
+}
+
+export async function createRequest(params: {
+  type: RequestType;
+  subject: string;
+  description: string;
+  requestedBy: string;
+}) {
+  const [row] = await db.insert(requests).values(params).returning();
+  await addNote(params.requestedBy, "request-new", params.subject, params.description);
+  return row;
+}
+
+export async function updateRequestStatus(params: { id: number; status: RequestStatus; author: string }) {
+  await db
+    .update(requests)
+    .set({ status: params.status, updatedAt: new Date() })
+    .where(eq(requests.id, params.id));
+  const [row] = await db.select().from(requests).where(eq(requests.id, params.id)).limit(1);
+  if (row) {
+    await addNote(params.author, "request-status", row.subject, `Status changed to "${params.status}"`);
+  }
 }
 
 export async function getCurrentSnapshotParts() {

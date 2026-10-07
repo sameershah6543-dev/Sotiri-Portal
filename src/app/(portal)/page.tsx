@@ -8,7 +8,8 @@ import { ExpiringDomainsPanel } from "@/components/ExpiringDomainsPanel";
 export default async function OverviewPage() {
   const [data, session] = await Promise.all([getPageData(), auth()]);
   const isTeam = session?.user?.role === "team";
-  const counts = buildGaugeCounts(data.campaigns, data.domains, data.unusedProfiles.length);
+  const openRequests = data.requests.filter((r) => r.status !== "done").length;
+  const counts = buildGaugeCounts(data.campaigns, data.domains, data.unusedProfiles.length, openRequests);
   const attention = buildAttentionList(data.campaigns, data.domains);
 
   return (

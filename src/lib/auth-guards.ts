@@ -17,6 +17,14 @@ export async function requireRole(role: Role) {
   return session.user;
 }
 
+// For actions either role may take (e.g. filing a request) — just needs a
+// logged-in session, no specific role.
+export async function requireAuth() {
+  const session = await auth();
+  if (!session?.user) throw new GuardError(401, "Not authenticated");
+  return session.user;
+}
+
 export function guardErrorResponse(err: unknown) {
   if (err instanceof GuardError) {
     return NextResponse.json({ error: err.message }, { status: err.status });
