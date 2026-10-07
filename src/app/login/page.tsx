@@ -29,7 +29,7 @@ export default async function LoginPage({
     <div className="min-h-full flex items-center justify-center px-4 py-12 bg-paper">
       <div className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
         <h1 className="font-display text-2xl font-semibold text-accent-strong mb-1">
-          MCC Sending Manifest
+          DHX Advertising
         </h1>
         <p className="text-sm text-muted mb-6">Sign in to continue.</p>
 

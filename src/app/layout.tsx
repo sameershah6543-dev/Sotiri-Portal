@@ -21,7 +21,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MCC Sending Manifest",
+  title: "DHX Advertising",
   description: "MailClickConvert email-sending operations command center",
 };
 

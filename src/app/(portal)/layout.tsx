@@ -24,7 +24,7 @@ export default async function PortalLayout({ children }: { children: React.React
       <header className="border-b border-line bg-surface">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-4 flex-wrap">
           <h1 className="font-display text-xl font-semibold text-accent-strong">
-            MCC Sending Manifest
+            DHX Advertising
           </h1>
           <nav className="flex items-center gap-1 flex-wrap">
             {TABS.map((tab) => (

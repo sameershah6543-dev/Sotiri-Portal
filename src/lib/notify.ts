@@ -42,9 +42,9 @@ export async function sendRenewalAlertEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "MCC Sending Manifest <onboarding@resend.dev>",
+      from: "DHX Advertising <onboarding@resend.dev>",
       to: [ALERT_EMAIL_TO],
-      subject: `${domains.length} domain(s) need renewal — MCC Sending Manifest`,
+      subject: `${domains.length} domain(s) need renewal — DHX Advertising`,
       html,
     }),
   });

@@ -1,4 +1,4 @@
-# MCC Sending Manifest Portal
+# DHX Advertising — Sending Manifest Portal
 
 A command center for MailClickConvert's email-sending operations: campaigns, sending domains,
 expiry/blacklist flags, and a replacement log, refreshed automatically from the platform API and
