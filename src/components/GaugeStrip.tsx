@@ -34,6 +34,12 @@ export function GaugeStrip({ counts }: { counts: GaugeCounts }) {
         value={String(counts.campaignsInFlight)}
       />
       <Tile
+        label="Campaigns with errors"
+        help={GAUGE_HELP.campaignErrors}
+        value={String(counts.campaignErrors)}
+        tone={counts.campaignErrors > 0 ? "critical" : undefined}
+      />
+      <Tile
         label="Flagged domains"
         help={GAUGE_HELP.flaggedDomains}
         value={String(counts.flaggedDomains)}

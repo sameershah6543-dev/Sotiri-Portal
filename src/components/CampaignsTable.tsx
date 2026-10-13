@@ -3,13 +3,15 @@
 import { DataTable, type Column, type ToggleFilter } from "@/components/DataTable";
 import { StatusChip } from "@/components/StatusChip";
 import { CAMPAIGN_HELP } from "@/lib/glossary";
+import { isErrorStatus } from "@/lib/derive";
 import type { ViewCampaign } from "@/types";
 
-const STATUS_TONE = {
-  Pending: "good",
-  Paused: "warn",
-  Completed: "neutral",
-} as const;
+function statusTone(status: string): "good" | "warn" | "critical" | "neutral" {
+  if (isErrorStatus(status)) return "critical";
+  if (status === "Pending" || status === "Sending") return "good";
+  if (status === "Paused") return "warn";
+  return "neutral";
+}
 
 const columns: Column<ViewCampaign>[] = [
   {
@@ -24,7 +26,7 @@ const columns: Column<ViewCampaign>[] = [
   {
     header: "Status",
     tooltip: CAMPAIGN_HELP.status,
-    cell: (c) => <StatusChip label={c.status} tone={STATUS_TONE[c.status]} />,
+    cell: (c) => <StatusChip label={c.status} tone={statusTone(c.status)} />,
   },
   { header: "Domain", mono: true, tooltip: CAMPAIGN_HELP.domain, cell: (c) => c.domain },
   {
@@ -68,7 +70,7 @@ const columns: Column<ViewCampaign>[] = [
 
 const issuesOnly: ToggleFilter<ViewCampaign> = {
   label: "Issues only",
-  predicate: (c) => !c.profileId || c.sbl || c.profileMismatch,
+  predicate: (c) => !c.profileId || c.sbl || c.profileMismatch || isErrorStatus(c.status),
 };
 
 export function CampaignsTable({ rows }: { rows: ViewCampaign[] }) {

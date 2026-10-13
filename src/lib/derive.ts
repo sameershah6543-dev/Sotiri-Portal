@@ -17,6 +17,16 @@ export function hasProfileMismatch(campaign: PlatformCampaign): boolean {
   return campaign.profileId !== campaign.rotatedProfileId;
 }
 
+// The platform's own authoritative signal that a campaign can't send — e.g.
+// "Error: No sending profile" (the profile/domain it references was deleted
+// from the account) or "Error: No ReverseDNS" (missing PTR record). A
+// campaign can show this with a non-null profileId still attached (the id
+// just no longer resolves to anything), so this is checked independently of
+// the profileId-is-null case, not as a replacement for it.
+export function isErrorStatus(status: string): boolean {
+  return status.startsWith("Error");
+}
+
 // Only counts as "needs renewal" when it's actually in use — an expiring
 // domain nobody sends from is safe to let lapse (brief §3). The platform API
 // has no renewal field at all, so "renewMarked" is entirely team-tracked.
@@ -54,7 +64,14 @@ export function buildAttentionList(
   }
 
   for (const c of campaigns) {
-    if (!c.profileId) {
+    if (isErrorStatus(c.status)) {
+      items.push({
+        severity: "critical",
+        label: c.title,
+        detail: `${c.status} — this campaign can't send until it's fixed`,
+        href: `/campaigns?q=${encodeURIComponent(c.title)}`,
+      });
+    } else if (!c.profileId) {
       items.push({
         severity: "critical",
         label: c.title,
@@ -105,12 +122,14 @@ export function buildGaugeCounts(
   spareProfiles: number,
   openRequests: number,
 ): GaugeCounts {
-  const inFlight = campaigns.filter((c) => c.status === "Pending").length;
+  const inFlight = campaigns.filter((c) => c.status === "Pending" || c.status === "Sending").length;
+  const errors = campaigns.filter((c) => isErrorStatus(c.status)).length;
   const flagged = domains.filter((d) => d.sbl || d.dbl).length;
   const expiringSoon = domains.filter((d) => d.daysLeft <= 60 && d.daysLeft >= 0).length;
 
   return {
     campaignsInFlight: inFlight,
+    campaignErrors: errors,
     flaggedDomains: flagged,
     expiringSoon,
     spareProfiles: spareProfiles,

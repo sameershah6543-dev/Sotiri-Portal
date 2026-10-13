@@ -2,7 +2,8 @@
 // them here means the wording only has to be right once.
 
 export const GAUGE_HELP = {
-  campaignsInFlight: "Campaigns currently set to send (status: Pending). Paused and completed campaigns aren't counted.",
+  campaignsInFlight: "Campaigns currently Pending or actively Sending. Paused, completed, and errored campaigns aren't counted.",
+  campaignErrors: "Campaigns the platform itself has flagged as broken — e.g. 'No sending profile' (its domain/profile was deleted from the account) or 'No ReverseDNS' (missing PTR record). These can't send until fixed.",
   flaggedDomains: "Domains someone has manually marked as blacklisted (SBL or DBL) after checking Spamhaus or similar. This isn't checked automatically — see Domains for details.",
   expiringSoon: "Domains whose registration expires within 60 days, whether or not that actually needs action. Check the 'Needs renewal' flag on the Domains tab for the ones that really do.",
   spareProfiles: "Sending profiles (domain + IP pairs) that exist on the platform but aren't assigned to any campaign — available to use for a new campaign or a replacement.",
@@ -10,7 +11,7 @@ export const GAUGE_HELP = {
 } as const;
 
 export const CAMPAIGN_HELP = {
-  status: "Pending = actively sending. Paused = temporarily stopped. Completed = finished its run.",
+  status: "Pending = scheduled to send. Sending = actively sending right now. Paused = temporarily stopped. Completed = finished its run. 'Error: ...' = the platform itself flagged a problem (e.g. its domain/profile was deleted) — it can't send until that's fixed.",
   domain: "The domain this campaign's emails actually go out from.",
   profile: "The 'sending profile' ties a campaign to one domain + IP. No profile means the campaign can't send at all. 'Mismatch' flags a known platform bug where the assigned profile doesn't match what the campaign is really using — worth checking against the client name on the left before assuming it's fixed.",
   flags: "SBL = manually flagged as blacklisted by Spamhaus. New domain = this campaign's domain was purchased/switched during a past cleanup.",

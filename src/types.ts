@@ -4,7 +4,12 @@
 export type PlatformCampaign = {
   id: string;
   title: string;
-  status: "Pending" | "Paused" | "Completed";
+  // Free text on purpose — the real platform returns far more than
+  // Pending/Paused/Completed, including "Sending" and error states like
+  // "Error: No sending profile" / "Error: No ReverseDNS" (confirmed live,
+  // 2026-10-13). Those error strings are exactly the kind of thing worth
+  // surfacing, not normalizing away.
+  status: string;
   profileId: string | null;
   domain: string;
   // Used to catch the profileid vs rotatedprofiles mismatch landmine
@@ -120,6 +125,7 @@ export type AttentionItem = {
 
 export type GaugeCounts = {
   campaignsInFlight: number;
+  campaignErrors: number;
   flaggedDomains: number;
   expiringSoon: number;
   spareProfiles: number;
